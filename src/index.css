@@ -1,0 +1,122 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 10%;
+
+    --primary: 100 30% 70%;
+    --primary-foreground: 100 10% 10%;
+
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 10%;
+
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
+
+    --accent: 100 30% 70%;
+    --accent-foreground: 0 0% 10%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 100 30% 70%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 0 0% 30%;
+    --sidebar-primary: 100 30% 70%;
+    --sidebar-primary-foreground: 0 0% 10%;
+    --sidebar-accent: 0 0% 95%;
+    --sidebar-accent-foreground: 0 0% 10%;
+    --sidebar-border: 0 0% 90%;
+    --sidebar-ring: 100 30% 70%;
+  }
+
+  .dark {
+    --background: 0 0% 10%;
+    --foreground: 0 0% 98%;
+
+    --card: 0 0% 13%;
+    --card-foreground: 0 0% 98%;
+
+    --popover: 0 0% 13%;
+    --popover-foreground: 0 0% 98%;
+
+    --primary: 100 30% 70%;
+    --primary-foreground: 0 0% 10%;
+
+    --secondary: 0 0% 18%;
+    --secondary-foreground: 0 0% 98%;
+
+    --muted: 0 0% 18%;
+    --muted-foreground: 0 0% 63%;
+
+    --accent: 100 30% 40%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 20%;
+    --input: 0 0% 20%;
+    --ring: 100 30% 40%;
+
+    --sidebar-background: 0 0% 13%;
+    --sidebar-foreground: 0 0% 90%;
+    --sidebar-primary: 100 30% 40%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 0 0% 16%;
+    --sidebar-accent-foreground: 0 0% 90%;
+    --sidebar-border: 0 0% 20%;
+    --sidebar-ring: 100 30% 40%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  .security-gradient {
+    @apply bg-gradient-to-br from-pistachio-400 to-pistachio-600;
+  }
+
+  .security-card {
+    @apply bg-white dark:bg-black/40 backdrop-blur-sm border border-gray-100 dark:border-gray-800 rounded-xl shadow-md hover:shadow-lg transition-all duration-300;
+  }
+
+  .security-button {
+    @apply inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors 
+    focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50;
+  }
+
+  .security-button-primary {
+    @apply security-button bg-pistachio hover:bg-pistachio-dark text-black shadow-sm;
+  }
+
+  .security-button-secondary {
+    @apply security-button bg-secondary hover:bg-secondary/80 text-secondary-foreground;
+  }
+
+  .security-button-icon {
+    @apply security-button h-9 w-9 p-0;
+  }
+}
