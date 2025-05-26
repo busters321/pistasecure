@@ -1,11 +1,15 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { db } from "@/components/ui/firebase";
+import { setDoc, doc, serverTimestamp } from "firebase/firestore";
 import { Eye, EyeOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import axios from "axios";
+
+import { auth } from "@/components/ui/firebase";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 
 interface SignUpFormProps {
     formData: {
@@ -15,13 +19,15 @@ interface SignUpFormProps {
         name: string;
         agreeToTerms: boolean;
     };
-    setFormData: React.Dispatch<React.SetStateAction<{
-        email: string;
-        password: string;
-        confirmPassword: string;
-        name: string;
-        agreeToTerms: boolean;
-    }>>;
+    setFormData: React.Dispatch<
+        React.SetStateAction<{
+            email: string;
+            password: string;
+            confirmPassword: string;
+            name: string;
+            agreeToTerms: boolean;
+        }>
+    >;
     onSubmit: () => void;
 }
 
@@ -32,52 +38,43 @@ export function SignUpForm({ formData, setFormData, onSubmit }: SignUpFormProps)
     const navigate = useNavigate();
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const { name, value, type, checked } = e.target;
-        setFormData({
-            ...formData,
+        const { name, type, checked, value } = e.target;
+        setFormData((prev) => ({
+            ...prev,
             [name]: type === "checkbox" ? checked : value,
-        });
+        }));
 
         if (errors[name]) {
-            setErrors({
-                ...errors,
+            setErrors((prev) => ({
+                ...prev,
                 [name]: "",
-            });
+            }));
         }
     };
 
     const validate = () => {
         const newErrors: Record<string, string> = {};
 
-        if (!formData.name.trim()) {
-            newErrors.name = "Name is required";
+        if (!formData.name.trim()) newErrors.name = "Name is required";
+
+        if (!formData.email.trim()) newErrors.email = "Email is required";
+        else if (!/\S+@\S+\.\S+/.test(formData.email)) newErrors.email = "Email address is invalid";
+
+        if (!formData.password) newErrors.password = "Password is required";
+        else {
+            if (formData.password.length < 8) newErrors.password = "Password must be at least 8 characters";
+            else if (!/[A-Z]/.test(formData.password))
+                newErrors.password = "Password must contain at least one uppercase letter";
+            else if (!/[0-9]/.test(formData.password))
+                newErrors.password = "Password must contain at least one number";
+            else if (!/[^A-Za-z0-9]/.test(formData.password))
+                newErrors.password = "Password must contain at least one special character";
         }
 
-        if (!formData.email.trim()) {
-            newErrors.email = "Email is required";
-        } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-            newErrors.email = "Email address is invalid";
-        }
-
-        if (!formData.password) {
-            newErrors.password = "Password is required";
-        } else if (formData.password.length < 8) {
-            newErrors.password = "Password must be at least 8 characters";
-        } else if (!/[A-Z]/.test(formData.password)) {
-            newErrors.password = "Password must contain at least one uppercase letter";
-        } else if (!/[0-9]/.test(formData.password)) {
-            newErrors.password = "Password must contain at least one number";
-        } else if (!/[^A-Za-z0-9]/.test(formData.password)) {
-            newErrors.password = "Password must contain at least one special character";
-        }
-
-        if (formData.password !== formData.confirmPassword) {
+        if (formData.password !== formData.confirmPassword)
             newErrors.confirmPassword = "Passwords don't match";
-        }
 
-        if (!formData.agreeToTerms) {
-            newErrors.agreeToTerms = "You must agree to the terms";
-        }
+        if (!formData.agreeToTerms) newErrors.agreeToTerms = "You must agree to the terms";
 
         setErrors(newErrors);
         return Object.keys(newErrors).length === 0;
@@ -85,10 +82,10 @@ export function SignUpForm({ formData, setFormData, onSubmit }: SignUpFormProps)
 
     const getClientIP = async () => {
         try {
-            const response = await axios.get('https://api.ipify.org?format=json');
-            return response.data.ip;
-        } catch (error) {
-            console.error("Could not fetch IP:", error);
+            const response = await fetch("https://api.ipify.org?format=json");
+            const data = await response.json();
+            return data.ip;
+        } catch {
             return "192.168." + Math.floor(Math.random() * 255) + "." + Math.floor(Math.random() * 255);
         }
     };
@@ -102,43 +99,47 @@ export function SignUpForm({ formData, setFormData, onSubmit }: SignUpFormProps)
         try {
             const userIP = await getClientIP();
             const userAgent = navigator.userAgent;
-            const signupDate = new Date().toISOString();
+            const signupDate = new Date();
 
-            // Send data to your backend API
-            const response = await axios.post('/api/auth/signup', {
-                email: formData.email,
-                password: formData.password,
+            const userCredential = await createUserWithEmailAndPassword(auth, formData.email, formData.password);
+            const user = userCredential.user;
+
+            await updateProfile(user, { displayName: formData.name });
+
+            // Save user data to Firestore under 'users' collection
+            await setDoc(doc(db, "users", user.uid), {
                 name: formData.name,
+                email: formData.email,
+                status: "active",
+                account: "user",
                 ipAddress: userIP,
-                userAgent,
-                signupDate,
-                agreedToTerms: formData.agreeToTerms
+                joined: serverTimestamp(),
             });
 
-            // Store minimal auth data in localStorage
-            localStorage.setItem("authToken", response.data.token);
             localStorage.setItem("userEmail", formData.email);
             localStorage.setItem("userName", formData.name);
-            localStorage.setItem("lastLogin", signupDate);
+            localStorage.setItem("lastLogin", signupDate.toISOString());
 
-            // Log the signup event to your security system
-            await axios.post('/api/security/logs', {
-                eventType: 'SIGNUP',
-                userEmail: formData.email,
-                ipAddress: userIP,
-                userAgent,
-                timestamp: signupDate,
-                metadata: {
-                    signupMethod: 'email'
-                }
+            await fetch("/api/security/logs", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    eventType: "SIGNUP",
+                    userEmail: formData.email,
+                    ipAddress: userIP,
+                    userAgent,
+                    timestamp: signupDate.toISOString(),
+                    metadata: {
+                        signupMethod: "firebase",
+                        uid: user.uid,
+                    },
+                }),
             });
 
             onSubmit();
-        } catch (error) {
-            console.error("Signup failed:", error);
+        } catch (error: any) {
             setErrors({
-                ...errors,
-                submit: error.response?.data?.message || "Signup failed. Please try again."
+                submit: error.message || "Signup failed. Please try again.",
             });
         } finally {
             setIsSubmitting(false);
@@ -147,71 +148,70 @@ export function SignUpForm({ formData, setFormData, onSubmit }: SignUpFormProps)
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
+            <div>
+                <Label htmlFor="name">Name</Label>
                 <Input
                     id="name"
                     name="name"
-                    placeholder="Enter your full name"
+                    type="text"
                     value={formData.name}
                     onChange={handleChange}
                     disabled={isSubmitting}
+                    required
                 />
-                {errors.name && <p className="text-sm text-destructive">{errors.name}</p>}
+                {errors.name && <p className="text-red-600">{errors.name}</p>}
             </div>
 
-            <div className="space-y-2">
+            <div>
                 <Label htmlFor="email">Email</Label>
                 <Input
                     id="email"
                     name="email"
                     type="email"
-                    placeholder="Enter your email"
                     value={formData.email}
                     onChange={handleChange}
                     disabled={isSubmitting}
+                    required
                 />
-                {errors.email && <p className="text-sm text-destructive">{errors.email}</p>}
+                {errors.email && <p className="text-red-600">{errors.email}</p>}
             </div>
 
-            <div className="space-y-2">
+            <div>
                 <Label htmlFor="password">Password</Label>
                 <div className="relative">
                     <Input
                         id="password"
                         name="password"
                         type={showPassword ? "text" : "password"}
-                        placeholder="Create a password (min 8 chars)"
                         value={formData.password}
                         onChange={handleChange}
                         disabled={isSubmitting}
+                        required
                     />
-                    <Button
+                    <button
                         type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-0 top-0 h-full"
                         onClick={() => setShowPassword(!showPassword)}
-                        disabled={isSubmitting}
+                        className="absolute right-2 top-2"
+                        tabIndex={-1}
                     >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                    </Button>
+                        {showPassword ? <EyeOff /> : <Eye />}
+                    </button>
                 </div>
-                {errors.password && <p className="text-sm text-destructive">{errors.password}</p>}
+                {errors.password && <p className="text-red-600">{errors.password}</p>}
             </div>
 
-            <div className="space-y-2">
+            <div>
                 <Label htmlFor="confirmPassword">Confirm Password</Label>
                 <Input
                     id="confirmPassword"
                     name="confirmPassword"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Confirm your password"
+                    type="password"
                     value={formData.confirmPassword}
                     onChange={handleChange}
                     disabled={isSubmitting}
+                    required
                 />
-                {errors.confirmPassword && <p className="text-sm text-destructive">{errors.confirmPassword}</p>}
+                {errors.confirmPassword && <p className="text-red-600">{errors.confirmPassword}</p>}
             </div>
 
             <div className="flex items-center space-x-2">
@@ -219,43 +219,30 @@ export function SignUpForm({ formData, setFormData, onSubmit }: SignUpFormProps)
                     id="agreeToTerms"
                     name="agreeToTerms"
                     checked={formData.agreeToTerms}
-                    onCheckedChange={(checked) =>
-                        setFormData({ ...formData, agreeToTerms: checked === true })
-                    }
-                    disabled={isSubmitting}
-                />
-                <label
-                    htmlFor="agreeToTerms"
-                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                    I agree to the terms of service and privacy policy
-                </label>
-            </div>
-            {errors.agreeToTerms && <p className="text-sm text-destructive">{errors.agreeToTerms}</p>}
-
-            {errors.submit && <p className="text-sm text-destructive text-center">{errors.submit}</p>}
-
-            <Button
-                type="submit"
-                className="w-full bg-pistachio hover:bg-pistachio-dark text-black"
-                disabled={isSubmitting}
-            >
-                {isSubmitting ? "Creating Account..." : "Create Account"}
-            </Button>
-
-            <p className="text-center text-sm text-muted-foreground">
-                Already have an account?{" "}
-                <a
-                    href="/login"
-                    onClick={(e) => {
-                        e.preventDefault();
-                        navigate('/login');
+                    onCheckedChange={(checked) => {
+                        setFormData((prev) => ({
+                            ...prev,
+                            agreeToTerms: checked === true,
+                        }));
+                        if (errors.agreeToTerms) {
+                            setErrors((prev) => ({
+                                ...prev,
+                                agreeToTerms: "",
+                            }));
+                        }
                     }}
-                    className="text-pistachio hover:underline"
-                >
-                    Log in
-                </a>
-            </p>
+                    disabled={isSubmitting}
+                    required
+                />
+                <Label htmlFor="agreeToTerms">I agree to the terms and conditions</Label>
+            </div>
+            {errors.agreeToTerms && <p className="text-red-600">{errors.agreeToTerms}</p>}
+
+            {errors.submit && <p className="text-red-600">{errors.submit}</p>}
+
+            <Button type="submit" disabled={isSubmitting} className="w-full">
+                {isSubmitting ? "Creating Account..." : "Sign Up"}
+            </Button>
         </form>
     );
 }

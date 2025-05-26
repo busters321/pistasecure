@@ -26,7 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAdminAuth } from "@/contexts/AdminAuthContext";
 import { AdminStats } from "@/components/admin/AdminStats";
-import { AdminUsersList } from "@/components/admin/AdminUsersList";
+import AdminUsersList from "@/components/admin/AdminUsersList";
 import { AdminScamStats } from "@/components/admin/AdminScamStats";
 import { AdminSystemSettings } from "@/components/admin/AdminSystemSettings";
 import { AdminUserIPTracker } from "@/components/admin/AdminUserIPTracker";

@@ -2,6 +2,8 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import { getAuth, signInWithEmailAndPassword, User } from "firebase/auth";
+
 
 interface AdminAuthContextType {
   isAdminAuthenticated: boolean;
@@ -23,18 +25,27 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   }, []);
 
-  const adminLogin = (password: string): boolean => {
-    // This is a simple password check - in a real app, this would use a more secure method
-    if (password === "ayman2007@4321") {
-      localStorage.setItem("pistaSecure_adminAuth", "authenticated");
-      setIsAdminAuthenticated(true);
-      toast.success("Admin access granted");
-      return true;
-    } else {
-      toast.error("Invalid admin credentials");
-      return false;
+    const auth = getAuth();
+
+    async function adminLogin(email: string, password: string) {
+        try {
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
+            const tokenResult = await user.getIdTokenResult();
+
+            if (tokenResult.claims.admin) {
+                // Save admin auth state
+                localStorage.setItem("pistaSecure_adminAuth", "authenticated");
+                setIsAdminAuthenticated(true);
+                toast.success("Admin access granted");
+            } else {
+                toast.error("You are not an admin");
+                auth.signOut();
+            }
+        } catch (error) {
+            toast.error("Login failed");
+        }
     }
-  };
 
   const adminLogout = () => {
     localStorage.removeItem("pistaSecure_adminAuth");

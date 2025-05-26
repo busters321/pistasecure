@@ -12,12 +12,12 @@ const Dashboard = () => {
   
   // This is a simple mock of authentication check
   // In a real app, you would use a proper auth system
-  useEffect(() => {
-    const isLoggedIn = localStorage.getItem("pistaSecure_isLoggedIn");
-    if (!isLoggedIn) {
-      localStorage.setItem("pistaSecure_isLoggedIn", "true");
-    }
-  }, [navigate]);
+    useEffect(() => {
+        const isLoggedIn = localStorage.getItem("pistaSecure_isLoggedIn");
+        if (isLoggedIn !== "true") {
+            navigate("/login");
+        }
+    }, [navigate]);
 
   const features = [
     {
