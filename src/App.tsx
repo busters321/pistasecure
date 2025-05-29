@@ -23,6 +23,8 @@ import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 import HowItWorks from './pages/HowItWorks';
+import About from "./pages/About";
+
 
 const queryClient = new QueryClient();
 
@@ -48,6 +50,7 @@ const App = () => (
               <Route path="/password-checker" element={<PasswordChecker />} />
               <Route path="/scam-report" element={<ScamReport />} />
               <Route path="/threat-feed" element={<ThreatFeed />} />
+              <Route path="/about" element={<About />} />
               <Route path="/how-it-works" element={<HowItWorks />} />
 
               {/* Admin Routes */}

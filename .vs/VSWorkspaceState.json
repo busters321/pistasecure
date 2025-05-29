@@ -1,9 +1,8 @@
 {
   "ExpandedNodes": [
     "",
-    "\\public",
-    "\\src",
     "\\src\\pages"
   ],
+  "SelectedNode": "\\tailwind.config.ts",
   "PreviewInSolutionExplorer": false
 }
