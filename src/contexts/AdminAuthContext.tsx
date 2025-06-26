@@ -6,24 +6,24 @@ import { getAuth, signInWithEmailAndPassword, User } from "firebase/auth";
 
 
 interface AdminAuthContextType {
-  isAdminAuthenticated: boolean;
-  adminLogin: (password: string) => boolean;
-  adminLogout: () => void;
+    isAdminAuthenticated: boolean;
+    adminLogin: (password: string) => boolean;
+    adminLogout: () => void;
 }
 
 const AdminAuthContext = createContext<AdminAuthContextType | undefined>(undefined);
 
 export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
-  const navigate = useNavigate();
+    const [isAdminAuthenticated, setIsAdminAuthenticated] = useState<boolean>(false);
+    const navigate = useNavigate();
 
-  // Check if admin is already authenticated on mount
-  useEffect(() => {
-    const adminAuthStatus = localStorage.getItem("pistaSecure_adminAuth");
-    if (adminAuthStatus === "authenticated") {
-      setIsAdminAuthenticated(true);
-    }
-  }, []);
+    // Check if admin is already authenticated on mount
+    useEffect(() => {
+        const adminAuthStatus = localStorage.getItem("pistaSecure_adminAuth");
+        if (adminAuthStatus === "authenticated") {
+            setIsAdminAuthenticated(true);
+        }
+    }, []);
 
     const auth = getAuth();
 
@@ -47,24 +47,24 @@ export const AdminAuthProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         }
     }
 
-  const adminLogout = () => {
-    localStorage.removeItem("pistaSecure_adminAuth");
-    setIsAdminAuthenticated(false);
-    toast.info("Logged out of admin panel");
-    navigate("/admin");
-  };
+    const adminLogout = () => {
+        localStorage.removeItem("pistaSecure_adminAuth");
+        setIsAdminAuthenticated(false);
+        toast.info("Logged out of admin panel");
+        navigate("/admin");
+    };
 
-  return (
-    <AdminAuthContext.Provider value={{ isAdminAuthenticated, adminLogin, adminLogout }}>
-      {children}
-    </AdminAuthContext.Provider>
-  );
+    return (
+        <AdminAuthContext.Provider value={{ isAdminAuthenticated, adminLogin, adminLogout }}>
+            {children}
+        </AdminAuthContext.Provider>
+    );
 };
 
 export const useAdminAuth = () => {
-  const context = useContext(AdminAuthContext);
-  if (context === undefined) {
-    throw new Error("useAdminAuth must be used within an AdminAuthProvider");
-  }
-  return context;
+    const context = useContext(AdminAuthContext);
+    if (context === undefined) {
+        throw new Error("useAdminAuth must be used within an AdminAuthProvider");
+    }
+    return context;
 };

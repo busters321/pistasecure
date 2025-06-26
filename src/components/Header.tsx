@@ -1,4 +1,5 @@
-import { useState } from "react";
+// src/components/Header.tsx
+import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { Shield, Menu, X, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -11,21 +12,18 @@ import {
 } from "@/components/ui/navigation-menu";
 import { ThemeToggle } from "./ThemeToggle";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function Header() {
     const location = useLocation();
     const isMobile = useIsMobile();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const { user, logout } = useAuth();
 
-    const isLoggedIn = localStorage.getItem("pistaSecure_isLoggedIn") === "true";
-
-    const toggleMenu = () => {
-        setIsMenuOpen(!isMenuOpen);
-    };
+    const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
 
     const handleLogout = () => {
-        localStorage.removeItem("pistaSecure_isLoggedIn");
-        localStorage.removeItem("pistaSecure_userEmail");
+        logout();
         window.location.href = "/";
     };
 
@@ -60,7 +58,7 @@ export function Header() {
                                         About
                                     </Link>
 
-                                    {isLoggedIn ? (
+                                    {user ? (
                                         <>
                                             <Link to="/dashboard" className="px-4 py-2 hover:bg-muted rounded" onClick={toggleMenu}>
                                                 Dashboard
@@ -75,18 +73,13 @@ export function Header() {
                                                 Sign Up
                                             </Link>
                                             <Link to="/login" className="mt-2">
-                                                <Button className="w-full bg-pistachio hover:bg-pistachio-dark text-black">
-                                                    Log in
-                                                </Button>
+                                                <Button className="w-full bg-pistachio hover:bg-pistachio-dark text-black">Log in</Button>
                                             </Link>
                                         </>
                                     )}
 
                                     <div className="mt-4 flex justify-between">
-                                        <Link
-                                            to="/admin"
-                                            className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-                                        >
+                                        <Link to="/admin" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
                                             <Settings className="h-4 w-4" />
                                             Admin
                                         </Link>
@@ -101,26 +94,20 @@ export function Header() {
                                 <NavigationMenuList>
                                     <NavigationMenuItem>
                                         <Link to="/">
-                                            <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                                                Home
-                                            </NavigationMenuLink>
+                                            <NavigationMenuLink className={navigationMenuTriggerStyle()}>Home</NavigationMenuLink>
                                         </Link>
                                     </NavigationMenuItem>
 
                                     <NavigationMenuItem>
                                         <Link to="/about">
-                                            <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                                                About
-                                            </NavigationMenuLink>
+                                            <NavigationMenuLink className={navigationMenuTriggerStyle()}>About</NavigationMenuLink>
                                         </Link>
                                     </NavigationMenuItem>
 
-                                    {isLoggedIn && (
+                                    {user && (
                                         <NavigationMenuItem>
                                             <Link to="/dashboard">
-                                                <NavigationMenuLink className={navigationMenuTriggerStyle()}>
-                                                    Dashboard
-                                                </NavigationMenuLink>
+                                                <NavigationMenuLink className={navigationMenuTriggerStyle()}>Dashboard</NavigationMenuLink>
                                             </Link>
                                         </NavigationMenuItem>
                                     )}
@@ -128,7 +115,7 @@ export function Header() {
                             </NavigationMenu>
 
                             <div className="hidden md:flex items-center gap-2">
-                                {isLoggedIn ? (
+                                {user ? (
                                     <Button variant="destructive" onClick={handleLogout}>
                                         Log out
                                     </Button>
@@ -138,19 +125,14 @@ export function Header() {
                                             <Button variant="outline">Sign Up</Button>
                                         </Link>
                                         <Link to="/login">
-                                            <Button className="bg-pistachio hover:bg-pistachio-dark text-black">
-                                                Log in
-                                            </Button>
+                                            <Button className="bg-pistachio hover:bg-pistachio-dark text-black">Log in</Button>
                                         </Link>
                                     </>
                                 )}
                             </div>
 
                             <div className="flex items-center gap-2 ml-2">
-                                <Link
-                                    to="/admin"
-                                    className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
-                                >
+                                <Link to="/admin" className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
                                     <Settings className="h-4 w-4" />
                                     Admin
                                 </Link>

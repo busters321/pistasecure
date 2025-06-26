@@ -1,99 +1,538 @@
 ﻿import { useState } from "react";
-import { Shield, AlertTriangle, X, Check, Upload, Link, MessageSquare } from "lucide-react";
+import { Shield, AlertTriangle, X, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
-import { analyzeContent, getRiskColor } from "./utils";
 
-export type RiskLevel = "safe" | "suspicious" | "dangerous" | null;
-export type InputType = "text" | "link" | "image";
+type RiskLevel = "safe" | "suspicious" | "dangerous" | null;
 
-export interface AnalysisResult {
+interface AnalysisResult {
     riskLevel: RiskLevel;
     score: number;
     reasons: string[];
     advice: string;
 }
 
+// Moved scamIndicators outside the component for better performance
+const scamIndicators = [
+    // High-Urgency Tactics (65-85)
+    { keyword: "act immediately", score: 85 },
+    { keyword: "within 24 hours", score: 80 },
+    { keyword: "final warning", score: 90 },
+    { keyword: "account suspension imminent", score: 88 },
+    { keyword: "immediate action required", score: 82 },
+    { keyword: "last chance to claim", score: 75 },
+    { keyword: "expires today", score: 70 },
+    { keyword: "urgent security alert", score: 85 },
+    { keyword: "time-sensitive matter", score: 65 },
+    { keyword: "do not ignore this", score: 80 },
+
+    // Financial Lures (60-85)
+    { keyword: "free cash prize", score: 70 },
+    { keyword: "you've been selected", score: 65 },
+    { keyword: "no investment required", score: 60 },
+    { keyword: "tax refund pending", score: 75 },
+    { keyword: "inheritance release", score: 80 },
+    { keyword: "crypto giveaway", score: 85 },
+    { keyword: "guaranteed returns", score: 88 },
+    { keyword: "government stimulus", score: 75 },
+    { keyword: "unclaimed money", score: 70 },
+    { keyword: "million dollar prize", score: 85 },
+
+    // Threat & Intimidation (80-95)
+    { keyword: "arrest warrant issued", score: 95 },
+    { keyword: "legal action pending", score: 90 },
+    { keyword: "social security suspended", score: 85 },
+    { keyword: "pay or face prosecution", score: 95 },
+    { keyword: "immediate payment required", score: 85 },
+    { keyword: "account termination notice", score: 80 },
+    { keyword: "deportation proceedings", score: 82 },
+    { keyword: "police investigation", score: 75 },
+    { keyword: "court summons attached", score: 88 },
+    { keyword: "frozen assets", score: 80 },
+
+    // Impersonation Scams (65-85)
+    { keyword: "microsoft security alert", score: 75 },
+    { keyword: "amazon prime renewal", score: 70 },
+    { keyword: "paypal account limited", score: 80 },
+    { keyword: "fedex delivery issue", score: 65 },
+    { keyword: "irs tax notice", score: 85 },
+    { keyword: "apple id verification", score: 72 },
+    { keyword: "netflix payment problem", score: 68 },
+    { keyword: "bank fraud department", score: 78 },
+    { keyword: "social security administration", score: 80 },
+    { keyword: "dhl customs fee", score: 65 },
+
+    // Information Harvesting (60-85)
+    { keyword: "verify your identity", score: 75 },
+    { keyword: "update payment details", score: 78 },
+    { keyword: "confirm banking information", score: 80 },
+    { keyword: "ssn required", score: 90 },
+    { keyword: "security question reset", score: 70 },
+    { keyword: "re-enter credentials", score: 75 },
+    { keyword: "card verification code", score: 85 },
+    { keyword: "dob confirmation", score: 72 },
+    { keyword: "two-factor authentication", score: 65 },
+    { keyword: "account recovery process", score: 68 },
+
+    // Suspicious Links/Attachments (70-90)
+    { keyword: "click below link", score: 75 },
+    { keyword: "download attachment", score: 78 },
+    { keyword: "secure your account here", score: 80 },
+    { keyword: "bit.ly/account-update", score: 85 },
+    { keyword: "tinyurl.com/claim-reward", score: 82 },
+    { keyword: "unlock document", score: 70 },
+    { keyword: "access restricted file", score: 75 },
+    { keyword: "view important notice", score: 72 },
+    { keyword: "install security update", score: 78 },
+    { keyword: "open encrypted message", score: 80 },
+
+    // Romance Scams (65-85)
+    { keyword: "emergency medical funds", score: 78 },
+    { keyword: "stranded abroad", score: 70 },
+    { keyword: "military deployment", score: 68 },
+    { keyword: "need money for flight", score: 75 },
+    { keyword: "hospital bills payment", score: 80 },
+    { keyword: "help my child", score: 85 },
+    { keyword: "visa processing fee", score: 65 },
+    { keyword: "clear customs package", score: 62 },
+    { keyword: "invest in our future", score: 70 },
+    { keyword: "trust fund release", score: 72 },
+
+    // Payment Demands (80-95)
+    { keyword: "pay with gift cards", score: 95 },
+    { keyword: "wire transfer required", score: 90 },
+    { keyword: "bitcoin payment address", score: 85 },
+    { keyword: "western union needed", score: 82 },
+    { keyword: "itunes card payment", score: 92 },
+    { keyword: "google play code", score: 88 },
+    { keyword: "prepaid debit card", score: 80 },
+    { keyword: "non-traceable payment", score: 85 },
+    { keyword: "urgent processing fee", score: 78 },
+    { keyword: "clearance charge", score: 75 },
+
+    // Linguistic Red Flags (30-70)
+    { keyword: "kindly do the needful", score: 65 },
+    { keyword: "greetings of the day", score: 40 },
+    { keyword: "revert back immediately", score: 70 },
+    { keyword: "congratulations winner", score: 75 },
+    { keyword: "dear valued customer", score: 50 },
+    { keyword: "official notification", score: 45 },
+    { keyword: "specially selected", score: 60 },
+    { keyword: "risk-free opportunity", score: 70 },
+    { keyword: "secret method", score: 75 },
+    { keyword: "privileged information", score: 68 },
+
+    // Tech Support Scams (70-85)
+    { keyword: "virus detected", score: 75 },
+    { keyword: "system infection", score: 78 },
+    { keyword: "call support immediately", score: 80 },
+    { keyword: "remote access required", score: 85 },
+    { keyword: "critical system update", score: 70 },
+    { keyword: "malware alert", score: 75 },
+    { keyword: "hacking attempt detected", score: 80 },
+    { keyword: "device compromised", score: 78 },
+    { keyword: "performance issues found", score: 68 },
+    { keyword: "security certificate expired", score: 72 },
+
+    // Job/Investment Scams (60-85)
+    { keyword: "work from home", score: 65 },
+    { keyword: "no experience needed", score: 60 },
+    { keyword: "earn $500 daily", score: 80 },
+    { keyword: "secret investment strategy", score: 85 },
+    { keyword: "double your money", score: 88 },
+    { keyword: "risk-free trading", score: 78 },
+    { keyword: "instant job offer", score: 65 },
+    { keyword: "pre-approved loan", score: 72 },
+    { keyword: "credit repair special", score: 70 },
+    { keyword: "forex guaranteed returns", score: 82 },
+
+    // Blackmail Scams (85-95)
+    { keyword: "we have compromising footage", score: 95 },
+    { keyword: "pay or we tell everyone", score: 90 },
+    { keyword: "your data is exposed", score: 85 },
+    { keyword: "webcam recording", score: 88 },
+    { keyword: "adult site access", score: 80 },
+    { keyword: "delete evidence", score: 85 },
+    { keyword: "keep this private", score: 75 },
+    { keyword: "shameful content", score: 82 },
+
+    // Additional indicators
+    { keyword: "password expiration", score: 75 },
+    { keyword: "suspicious login attempt", score: 78 },
+    { keyword: "unusual sign-in activity", score: 80 },
+    { keyword: "security breach detected", score: 85 },
+    { keyword: "verify payment method", score: 72 },
+    { keyword: "billing information update", score: 75 },
+    { keyword: "subscription renewal issue", score: 68 },
+    { keyword: "membership verification", score: 65 },
+    { keyword: "prize claim department", score: 70 },
+    { keyword: "funds transfer authorization", score: 78 },
+
+    // Special characters and patterns
+    { keyword: "!!!", score: 55 },
+    { keyword: "??", score: 50 },
+    { keyword: "100% free", score: 65 },
+    { keyword: "$$$", score: 70 },
+    { keyword: "http://", score: 75 },
+    { keyword: "click below", score: 65 },
+    { keyword: "limited spots", score: 60 },
+    { keyword: "exclusive offer", score: 62 },
+    { keyword: "risk-free", score: 68 },
+    { keyword: "no catch", score: 63 },
+
+    // Emerging threat patterns
+    { keyword: "nft airdrop", score: 75 },
+    { keyword: "ai profit system", score: 78 },
+    { keyword: "crypto mining pool", score: 80 },
+    { keyword: "central bank digital currency", score: 70 },
+    { keyword: "metaverse investment", score: 72 },
+    { keyword: "quantum trading bot", score: 85 },
+    { keyword: "atm card", score: 80 },
+    { keyword: "compensation", score: 70 },
+    { keyword: "secretary", score: 65 },
+    { keyword: "fund transfer", score: 85 },
+    { keyword: "swiss account", score: 82 },
+    { keyword: "investment project", score: 75 },
+    { keyword: "full name", score: 65 },
+    { keyword: "contact address", score: 60 },
+    { keyword: "id", score: 55 },
+    { keyword: "lomé", score: 50 },
+    { keyword: "paraguay", score: 45 },
+    { keyword: "giz office", score: 40 },
+
+    // COMMON SCAM PHRASES (50-75)
+    { keyword: "happy to inform you", score: 55 },
+    { keyword: "success in getting", score: 60 },
+    { keyword: "co-operation of a new partner", score: 65 },
+    { keyword: "international business man", score: 62 },
+    { keyword: "did not forget your past efforts", score: 70 },
+    { keyword: "despite that it failed", score: 60 },
+    { keyword: "given my secretary instruction", score: 75 },
+    { keyword: "on your name", score: 65 },
+    { keyword: "compensation for your past effort", score: 80 },
+    { keyword: "feel free to get in touch", score: 55 },
+    { keyword: "send the debit card", score: 82 },
+    { keyword: "without any delay", score: 65 },
+    { keyword: "further arrangements", score: 58 },
+    { keyword: "network inconvenience", score: 50 },
+
+    // FINANCIAL SCAM INDICATORS
+    { keyword: "fund", score: 65 },
+    { keyword: "transfer", score: 70 },
+    { keyword: "account", score: 55 },
+    { keyword: "investment", score: 60 },
+    { keyword: "debit", score: 75 },
+    { keyword: "atm", score: 75 },
+    { keyword: "dollars", score: 65 },
+    { keyword: "usd", score: 65 },
+    { keyword: "money", score: 60 },
+    { keyword: "payment", score: 55 },
+    { keyword: "compensation", score: 65 },
+    { keyword: "secretary", score: 60 },
+    { keyword: "contact", score: 45 },
+    { keyword: "send", score: 50 },
+    { keyword: "receive", score: 50 },
+    { keyword: "instructions", score: 55 },
+    { keyword: "reference", score: 45 },
+    { keyword: "arrangements", score: 50 },
+
+    // URGENCY AND PRESSURE TACTICS
+    { keyword: "immediately", score: 70 },
+    { keyword: "urgent", score: 75 },
+    { keyword: "asap", score: 65 },
+    { keyword: "now", score: 60 },
+    { keyword: "today", score: 58 },
+    { keyword: "last chance", score: 80 },
+    { keyword: "final notice", score: 85 },
+    { keyword: "do not ignore", score: 75 },
+    { keyword: "time sensitive", score: 65 },
+    { keyword: "expiring", score: 60 },
+
+    // FINANCIAL LURES
+    { keyword: "free", score: 60 },
+    { keyword: "prize", score: 70 },
+    { keyword: "won", score: 75 },
+    { keyword: "reward", score: 65 },
+    { keyword: "bonus", score: 62 },
+    { keyword: "cash", score: 68 },
+    { keyword: "grant", score: 65 },
+    { keyword: "refund", score: 60 },
+    { keyword: "discount", score: 50 },
+    { keyword: "inheritance", score: 80 },
+    { keyword: "lottery", score: 85 },
+    { keyword: "jackpot", score: 88 },
+    { keyword: "million", score: 82 },
+    { keyword: "billion", score: 85 },
+    { keyword: "crypto", score: 65 },
+    { keyword: "bitcoin", score: 70 },
+
+    // THREATS AND INTIMIDATION
+    { keyword: "arrest", score: 85 },
+    { keyword: "warrant", score: 82 },
+    { keyword: "police", score: 70 },
+    { keyword: "lawsuit", score: 75 },
+    { keyword: "jail", score: 80 },
+    { keyword: "legal", score: 65 },
+    { keyword: "suspend", score: 68 },
+    { keyword: "terminate", score: 70 },
+    { keyword: "blocked", score: 65 },
+    { keyword: "frozen", score: 68 },
+    { keyword: "deleted", score: 60 },
+    { keyword: "investigate", score: 58 },
+    { keyword: "crime", score: 70 },
+    { keyword: "illegal", score: 75 },
+
+    // IMPERSONATION SCAMS
+    { keyword: "microsoft", score: 65 },
+    { keyword: "amazon", score: 65 },
+    { keyword: "paypal", score: 70 },
+    { keyword: "fedex", score: 60 },
+    { keyword: "ups", score: 60 },
+    { keyword: "dhl", score: 60 },
+    { keyword: "irs", score: 85 },
+    { keyword: "social security", score: 82 },
+    { keyword: "bank", score: 65 },
+    { keyword: "support", score: 60 },
+    { keyword: "security alert", score: 75 },
+    { keyword: "account limited", score: 78 },
+    { keyword: "delivery issue", score: 60 },
+    { keyword: "tax notice", score: 80 },
+    { keyword: "verification", score: 65 },
+    { keyword: "payment problem", score: 60 },
+
+    // INFORMATION HARVESTING
+    { keyword: "verify", score: 70 },
+    { keyword: "confirm", score: 65 },
+    { keyword: "update", score: 60 },
+    { keyword: "login", score: 55 },
+    { keyword: "password", score: 75 },
+    { keyword: "ssn", score: 90 },
+    { keyword: "sin", score: 90 },
+    { keyword: "dob", score: 70 },
+    { keyword: "card", score: 65 },
+    { keyword: "cvv", score: 85 },
+    { keyword: "pin", score: 88 },
+    { keyword: "id", score: 65 },
+    { keyword: "address", score: 55 },
+    { keyword: "phone", score: 50 },
+    { keyword: "security", score: 60 },
+    { keyword: "authentication", score: 62 },
+
+    // SUSPICIOUS LINKS/ATTACHMENTS
+    { keyword: "click here", score: 70 },
+    { keyword: "download", score: 65 },
+    { keyword: "attachment", score: 68 },
+    { keyword: "link", score: 60 },
+    { keyword: "bit.ly", score: 80 },
+    { keyword: "tinyurl", score: 80 },
+    { keyword: "http://", score: 75 },
+    { keyword: "unlock", score: 65 },
+    { keyword: "access", score: 60 },
+    { keyword: "view", score: 55 },
+    { keyword: "install", score: 65 },
+    { keyword: "open", score: 60 },
+
+    // ROMANCE SCAMS
+    { keyword: "dear", score: 50 },
+    { keyword: "love", score: 55 },
+    { keyword: "destiny", score: 45 },
+    { keyword: "soulmate", score: 50 },
+    { keyword: "future", score: 55 },
+    { keyword: "marriage", score: 60 },
+    { keyword: "care", score: 50 },
+    { keyword: "trust", score: 55 },
+    { keyword: "lonely", score: 60 },
+    { keyword: "help", score: 65 },
+    { keyword: "stranded", score: 70 },
+    { keyword: "hospital", score: 65 },
+    { keyword: "sick", score: 60 },
+    { keyword: "army", score: 55 },
+    { keyword: "soldier", score: 60 },
+    { keyword: "widow", score: 55 },
+    { keyword: "orphan", score: 60 },
+
+    // PAYMENT DEMANDS
+    { keyword: "gift cards", score: 95 },
+    { keyword: "wire transfer", score: 85 },
+    { keyword: "bitcoin", score: 80 },
+    { keyword: "western union", score: 82 },
+    { keyword: "itunes", score: 90 },
+    { keyword: "google play", score: 88 },
+    { keyword: "prepaid", score: 75 },
+    { keyword: "non-traceable", score: 82 },
+    { keyword: "fee", score: 65 },
+    { keyword: "charge", score: 60 },
+    { keyword: "processing", score: 55 },
+    { keyword: "clearance", score: 58 },
+
+    // LINGUISTIC RED FLAGS
+    { keyword: "kindly", score: 80 },
+    { keyword: "revert", score: 65 },
+    { keyword: "greetings", score: 40 },
+    { keyword: "congratulations", score: 60 },
+    { keyword: "dear friend", score: 70 },
+    { keyword: "official", score: 55 },
+    { keyword: "specially", score: 60 },
+    { keyword: "risk-free", score: 65 },
+    { keyword: "secret", score: 70 },
+    { keyword: "privileged", score: 65 },
+
+    // JOB/INVESTMENT SCAMS
+    { keyword: "work from home", score: 65 },
+    { keyword: "no experience", score: 60 },
+    { keyword: "earn money", score: 70 },
+    { keyword: "investment strategy", score: 75 },
+    { keyword: "double your money", score: 85 },
+    { keyword: "trading", score: 65 },
+    { keyword: "job offer", score: 60 },
+    { keyword: "pre-approved", score: 65 },
+    { keyword: "credit repair", score: 62 },
+    { keyword: "forex", score: 70 },
+    { keyword: "guaranteed returns", score: 80 },
+
+    // BLACKMAIL SCAMS
+    { keyword: "compromising", score: 85 },
+    { keyword: "footage", score: 82 },
+    { keyword: "pay or", score: 88 },
+    { keyword: "data exposed", score: 80 },
+    { keyword: "webcam", score: 75 },
+    { keyword: "adult site", score: 70 },
+    { keyword: "delete", score: 72 },
+    { keyword: "private", score: 60 },
+    { keyword: "shameful", score: 75 },
+
+    // ADDITIONAL SCAM WORDS (40-70)
+    { keyword: "assist", score: 55 },
+    { keyword: "assistance", score: 50 },
+    { keyword: "beneficiary", score: 65 },
+    { keyword: "claim", score: 70 },
+    { keyword: "confidential", score: 68 },
+    { keyword: "cooperate", score: 60 },
+    { keyword: "cooperation", score: 62 },
+    { keyword: "discreet", score: 65 },
+    { keyword: "fortune", score: 55 },
+    { keyword: "funds", score: 70 },
+    { keyword: "generosity", score: 50 },
+    { keyword: "genuine", score: 45 },
+    { keyword: "honest", score: 40 },
+    { keyword: "inheritance", score: 80 },
+    { keyword: "legitimate", score: 50 },
+    { keyword: "opportunity", score: 65 },
+    { keyword: "partner", score: 55 },
+    { keyword: "percentage", score: 60 },
+    { keyword: "proceed", score: 55 },
+    { keyword: "proposal", score: 60 },
+    { keyword: "relationship", score: 50 },
+    { keyword: "release", score: 65 },
+    { keyword: "remit", score: 60 },
+    { keyword: "resolve", score: 55 },
+    { keyword: "share", score: 60 },
+    { keyword: "trust", score: 55 },
+    { keyword: "unclaimed", score: 70 },
+    { keyword: "urgent", score: 75 },
+    { keyword: "wealth", score: 60 },
+
+    // SPECIAL PATTERNS AND SYMBOLS
+    { keyword: "!!!", score: 55 },
+    { keyword: "???", score: 50 },
+    { keyword: "$$$", score: 65 },
+    { keyword: "100%", score: 60 },
+    { keyword: "http://", score: 70 },
+    { keyword: "gmail.com", score: 40 },
+    { keyword: "hotmail.com", score: 40 },
+    { keyword: "yahoo.com", score: 40 },
+    { keyword: "dollar amount", score: 75 },
+];
+
+    
+
+
+
+
+
 export function ScamIntelligenceEngine() {
-    const [inputType, setInputType] = useState<InputType>("text");
     const [inputValue, setInputValue] = useState("");
-    const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [result, setResult] = useState<AnalysisResult | null>(null);
 
-    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
+    const analyzeText = (text: string): AnalysisResult => {
+        let score = 0;
+        const foundReasons: string[] = [];
+        const lowerText = text.toLowerCase();
 
-        const reader = new FileReader();
-        reader.onload = () => {
-            setImagePreview(reader.result as string);
-            setInputValue("IMAGE_UPLOADED");
-        };
-        reader.readAsDataURL(file);
+        scamIndicators.forEach((item) => {
+            if (lowerText.includes(item.keyword.toLowerCase())) {
+                score += item.score;
+                foundReasons.push(`Found phrase: "${item.keyword}"`);
+            }
+        });
+
+        // Normalize score to 0-100
+        const normalizedScore = Math.min(100, Math.floor(score / 5));
+
+        let riskLevel: RiskLevel = "safe";
+        let advice = "No scam indicators found. Remain cautious.";
+
+        if (normalizedScore >= 70) {
+            riskLevel = "dangerous";
+            advice = "Do not engage. Report and delete the message.";
+        } else if (normalizedScore >= 30) {
+            riskLevel = "suspicious";
+            advice = "Be cautious. Double check sender identity.";
+        }
+
+        return { riskLevel, score: normalizedScore, reasons: foundReasons, advice };
     };
 
     const handleAnalyze = () => {
-        // If no input is provided, do nothing (or you can show an error toast)
-        if (!inputValue && !imagePreview) {
-            toast.error("Please enter text, link or upload an image to analyze.");
+        if (!inputValue.trim()) {
+            toast.error("Please enter text to analyze.");
             return;
         }
 
         setIsLoading(true);
 
+        // Simulate analysis (no timeout needed)
         setTimeout(() => {
-            try {
-                let analysisResult: AnalysisResult;
+            const analysis = analyzeText(inputValue);
+            setResult(analysis);
 
-                if (inputType === "image") {
-                    // Use a simulated image text for analysis (or integrate real OCR)
-                    const simulatedImageText = `
-            This is a message claiming you've won a prize.
-            Please verify your account by sending your password and credit card details.
-            This offer is urgent and expires today!
-          `;
-                    analysisResult = analyzeContent(simulatedImageText, "image");
-                } else {
-                    analysisResult = analyzeContent(inputValue, inputType);
-                }
+            if (analysis.riskLevel === "dangerous") toast.error("High risk content detected!");
+            else if (analysis.riskLevel === "suspicious") toast.warning("Suspicious content detected");
+            else toast.success("Content appears to be safe");
 
-                setResult(analysisResult);
-
-                if (analysisResult.riskLevel === "dangerous") {
-                    toast.error("High risk content detected!");
-                } else if (analysisResult.riskLevel === "suspicious") {
-                    toast.warning("Suspicious content detected");
-                } else {
-                    toast.success("Content appears to be safe");
-                }
-            } catch (error) {
-                console.error("Error analyzing content:", error);
-                toast.error("Analysis failed");
-            } finally {
-                setIsLoading(false);
-            }
-        }, 1500);
+            setIsLoading(false);
+        }, 300);
     };
 
-    const resetAnalysis = () => {
+    const reset = () => {
         setInputValue("");
-        setImagePreview(null);
         setResult(null);
     };
 
-    const getRiskIcon = (risk: RiskLevel) => {
+    const getColor = (risk: RiskLevel) => {
         switch (risk) {
             case "safe":
-                return <Check className="h-5 w-5 text-success" />;
+                return "border-green-600 bg-green-50 text-green-700";
             case "suspicious":
-                return <AlertTriangle className="h-5 w-5 text-warning" />;
+                return "border-yellow-500 bg-yellow-50 text-yellow-800";
             case "dangerous":
-                return <X className="h-5 w-5 text-danger" />;
+                return "border-red-600 bg-red-50 text-red-700";
+            default:
+                return "";
+        }
+    };
+
+    const getIcon = (risk: RiskLevel) => {
+        switch (risk) {
+            case "safe":
+                return <Check className="h-5 w-5 text-green-600" />;
+            case "suspicious":
+                return <AlertTriangle className="h-5 w-5 text-yellow-600" />;
+            case "dangerous":
+                return <X className="h-5 w-5 text-red-600" />;
             default:
                 return null;
         }
@@ -116,39 +555,31 @@ export function ScamIntelligenceEngine() {
                     <Card className="border-border/50 shadow-lg">
                         <CardHeader>
                             <CardTitle>Scan for Scams</CardTitle>
-                            <CardDescription>
-                                Upload or paste content to analyze for potential threats
-                            </CardDescription>
+                            <CardDescription>Enter a message and check its safety</CardDescription>
                         </CardHeader>
                         <CardContent>
                             {result ? (
                                 <div className="space-y-6">
-                                    <div className={`p-4 rounded-lg border ${getRiskColor(result.riskLevel)}`}>
+                                    <div className={`p-4 rounded-lg border ${getColor(result.riskLevel)}`}>
                                         <div className="flex items-center gap-3">
-                                            <div className="p-2 rounded-full bg-background">
-                                                {getRiskIcon(result.riskLevel)}
-                                            </div>
+                                            <div className="p-2 rounded-full bg-background">{getIcon(result.riskLevel)}</div>
                                             <div>
-                                                <h3 className="font-medium text-lg capitalize">
-                                                    {result.riskLevel} ({result.score}%)
-                                                </h3>
+                                                <h3 className="font-medium text-lg capitalize">{result.riskLevel} ({result.score}%)</h3>
                                                 <p className="text-sm text-muted-foreground">
                                                     {result.riskLevel === "safe"
-                                                        ? "This content appears to be safe."
-                                                        : "This content contains suspicious elements."}
+                                                        ? "This content appears safe."
+                                                        : "This message contains risky elements."}
                                                 </p>
                                             </div>
                                         </div>
                                     </div>
 
                                     <div>
-                                        <h4 className="font-medium mb-2">Why this rating?</h4>
+                                        <h4 className="font-medium mb-2">Reasons detected</h4>
                                         <ul className="space-y-2">
                                             {result.reasons.map((reason, i) => (
                                                 <li key={i} className="flex items-start gap-2">
-                                                    <span className="mt-1 text-xs bg-secondary rounded-full p-0.5 text-muted-foreground">
-                                                        {i + 1}
-                                                    </span>
+                                                    <span className="mt-1 text-xs bg-secondary rounded-full p-0.5 text-muted-foreground">{i + 1}</span>
                                                     <span>{reason}</span>
                                                 </li>
                                             ))}
@@ -156,14 +587,12 @@ export function ScamIntelligenceEngine() {
                                     </div>
 
                                     <div>
-                                        <h4 className="font-medium mb-2">Recommended action</h4>
+                                        <h4 className="font-medium mb-2">Advice</h4>
                                         <p>{result.advice}</p>
                                     </div>
 
                                     <div className="flex gap-3">
-                                        <Button onClick={resetAnalysis} variant="outline" className="flex-1">
-                                            Scan something else
-                                        </Button>
+                                        <Button onClick={reset} variant="outline" className="flex-1">Scan something else</Button>
                                         <Button
                                             className="flex-1 bg-pistachio hover:bg-pistachio-dark text-black"
                                             onClick={() => toast.success("Report submitted successfully!")}
@@ -173,68 +602,17 @@ export function ScamIntelligenceEngine() {
                                     </div>
                                 </div>
                             ) : (
-                                <>
-                                    <Tabs
-                                        defaultValue="text"
-                                        onValueChange={(value) => {
-                                            setInputType(value as InputType);
-                                            setInputValue("");
-                                            setImagePreview(null);
-                                        }}
-                                        className="w-full"
-                                    >
-                                        <TabsList className="grid grid-cols-3 mb-6">
-                                            <TabsTrigger value="text">
-                                                <MessageSquare className="h-4 w-4 mr-2" />
-                                                Text
-                                            </TabsTrigger>
-                                            <TabsTrigger value="link">
-                                                <Link className="h-4 w-4 mr-2" />
-                                                Link
-                                            </TabsTrigger>
-                                            <TabsTrigger value="image">
-                                                <Upload className="h-4 w-4 mr-2" />
-                                                Image
-                                            </TabsTrigger>
-                                        </TabsList>
-
-                                        <TabsContent value="text" className="mt-0">
-                                            <Textarea
-                                                placeholder="Paste the suspicious message or text here..."
-                                                className="min-h-[150px]"
-                                                value={inputValue}
-                                                onChange={(e) => setInputValue(e.target.value)}
-                                            />
-                                        </TabsContent>
-
-                                        <TabsContent value="link" className="mt-0">
-                                            <Input
-                                                type="url"
-                                                placeholder="Enter suspicious URL..."
-                                                value={inputValue}
-                                                onChange={(e) => setInputValue(e.target.value)}
-                                            />
-                                        </TabsContent>
-
-                                        <TabsContent value="image" className="mt-0">
-                                            <input
-                                                type="file"
-                                                accept="image/*"
-                                                onChange={handleImageUpload}
-                                                className="w-full mb-4"
-                                            />
-                                            {imagePreview && (
-                                                <div className="mt-4">
-                                                    <img src={imagePreview} alt="Preview" className="max-w-full mx-auto rounded-md" />
-                                                </div>
-                                            )}
-                                        </TabsContent>
-                                    </Tabs>
-
+                                <div className="space-y-4">
+                                    <Textarea
+                                        placeholder="Paste the suspicious message here..."
+                                        className="min-h-[150px]"
+                                        value={inputValue}
+                                        onChange={(e) => setInputValue(e.target.value)}
+                                    />
                                     <Button
                                         onClick={handleAnalyze}
-                                        disabled={isLoading || (!inputValue && !imagePreview)}
-                                        className="w-full mt-6 bg-pistachio hover:bg-pistachio-dark text-black"
+                                        disabled={isLoading || !inputValue.trim()}
+                                        className="w-full bg-pistachio hover:bg-pistachio-dark text-black"
                                     >
                                         {isLoading ? (
                                             <>
@@ -245,7 +623,7 @@ export function ScamIntelligenceEngine() {
                                             "Analyze for Threats"
                                         )}
                                     </Button>
-                                </>
+                                </div>
                             )}
                         </CardContent>
                     </Card>

@@ -12,18 +12,12 @@ import { getFirestore, doc, getDoc } from "firebase/firestore";
 const Login = () => {
     const navigate = useNavigate();
     const { toast } = useToast();
-    const [formData, setFormData] = useState({
-        email: "",
-        password: "",
-    });
+    const [formData, setFormData] = useState({ email: "", password: "" });
     const [showPassword, setShowPassword] = useState(false);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
-        setFormData({
-            ...formData,
-            [name]: value,
-        });
+        setFormData((prev) => ({ ...prev, [name]: value }));
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -46,18 +40,9 @@ const Login = () => {
             const uid = userCredential.user.uid;
 
             const userDoc = await getDoc(doc(db, "users", uid));
-
-            if (!userDoc.exists()) {
-                toast({
-                    title: "Error",
-                    description: "User record not found in database",
-                    variant: "destructive",
-                });
-                return;
-            }
+            if (!userDoc.exists()) throw new Error("User not found");
 
             const userData = userDoc.data();
-
             if (userData.status === "disabled" || userData.status === "banned") {
                 toast({
                     title: "Account Disabled",
@@ -67,22 +52,13 @@ const Login = () => {
                 return;
             }
 
-            // User is active, continue login
-            localStorage.setItem("pistaSecure_isLoggedIn", "true");
-            localStorage.setItem("pistaSecure_userEmail", formData.email);
-            localStorage.setItem("pistaSecure_lastLogin", new Date().toISOString());
-            localStorage.setItem(
-                "pistaSecure_userIP",
-                "192.168." + Math.floor(Math.random() * 255) + "." + Math.floor(Math.random() * 255)
-            );
-
             toast({
                 title: "Success",
                 description: "You have been logged in successfully",
             });
 
             navigate("/dashboard");
-        } catch (error) {
+        } catch {
             toast({
                 title: "Error",
                 description: "Invalid email or password",
