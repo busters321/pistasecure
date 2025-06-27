@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Shield, EyeOff, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,15 @@ const Login = () => {
     const [formData, setFormData] = useState({ email: "", password: "" });
     const [showPassword, setShowPassword] = useState(false);
 
+    useEffect(() => {
+        // Load Google reCAPTCHA script
+        const script = document.createElement("script");
+        script.src = "https://www.google.com/recaptcha/api.js";
+        script.async = true;
+        script.defer = true;
+        document.body.appendChild(script);
+    }, []);
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
@@ -22,6 +31,16 @@ const Login = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        const recaptchaValue = (window as any).grecaptcha?.getResponse();
+        if (!recaptchaValue) {
+            toast({
+                title: "reCAPTCHA Required",
+                description: "Please verify you are not a robot",
+                variant: "destructive",
+            });
+            return;
+        }
 
         if (!formData.email || !formData.password) {
             toast({
@@ -57,6 +76,7 @@ const Login = () => {
                 description: "You have been logged in successfully",
             });
 
+            (window as any).grecaptcha?.reset();
             navigate("/dashboard");
         } catch {
             toast({
@@ -64,6 +84,7 @@ const Login = () => {
                 description: "Invalid email or password",
                 variant: "destructive",
             });
+            (window as any).grecaptcha?.reset();
         }
     };
 
@@ -123,6 +144,11 @@ const Login = () => {
                                         {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                                     </Button>
                                 </div>
+                            </div>
+
+                            {/* reCAPTCHA */}
+                            <div className="flex justify-center">
+                                <div className="g-recaptcha" data-sitekey="6LdIL3ArAAAAAKQNzKabakP0LQzYr5RdzkorM98i"></div>
                             </div>
 
                             <Button type="submit" className="w-full bg-pistachio hover:bg-pistachio-dark text-black">

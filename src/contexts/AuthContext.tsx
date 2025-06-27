@@ -1,6 +1,13 @@
 // src/contexts/AuthContext.tsx
 import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import { getAuth, onAuthStateChanged, signOut, User } from "firebase/auth";
+import {
+    getAuth,
+    onAuthStateChanged,
+    setPersistence,
+    browserLocalPersistence,
+    signOut,
+    User,
+} from "firebase/auth";
 
 interface AuthContextType {
     user: User | null;
@@ -21,40 +28,49 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
 
-    // Logout function
     const logout = () => {
         signOut(auth);
     };
 
     useEffect(() => {
-        // Listen to auth state changes
-        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-            setUser(currentUser);
-            setLoading(false);
-        });
+        const initAuth = async () => {
+            try {
+                await setPersistence(auth, browserLocalPersistence);
+                const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+                    setUser(currentUser);
+                    setLoading(false);
+                });
+                return unsubscribe;
+            } catch (err) {
+                console.error("Failed to set auth persistence:", err);
+                setLoading(false);
+            }
+        };
 
-        return unsubscribe;
+        const unsubscribePromise = initAuth();
+
+        return () => {
+            unsubscribePromise.then((unsubscribe) => {
+                if (typeof unsubscribe === "function") unsubscribe();
+            });
+        };
     }, [auth]);
 
-    // Inactivity logout logic
     useEffect(() => {
         if (!user) return;
 
         let timeoutId: NodeJS.Timeout;
 
-        // Logout after 30 minutes of inactivity
         const logoutAfterInactivity = () => {
             logout();
             alert("Logged out due to inactivity.");
         };
 
-        // Reset inactivity timer
         const resetTimer = () => {
-            if (timeoutId) clearTimeout(timeoutId);
-            timeoutId = setTimeout(logoutAfterInactivity, 30 * 60 * 1000); // 1 minute
+            clearTimeout(timeoutId);
+            timeoutId = setTimeout(logoutAfterInactivity, 30 * 60 * 1000); // 30 mins
         };
 
-        // List of events to detect activity
         const activityEvents = [
             "mousemove",
             "mousedown",
@@ -63,19 +79,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             "touchstart",
         ];
 
-        // Attach event listeners
-        activityEvents.forEach((event) => {
-            window.addEventListener(event, resetTimer);
-        });
+        activityEvents.forEach((event) =>
+            window.addEventListener(event, resetTimer)
+        );
 
-        // Start timer initially
         resetTimer();
 
         return () => {
-            if (timeoutId) clearTimeout(timeoutId);
-            activityEvents.forEach((event) => {
-                window.removeEventListener(event, resetTimer);
-            });
+            clearTimeout(timeoutId);
+            activityEvents.forEach((event) =>
+                window.removeEventListener(event, resetTimer)
+            );
         };
     }, [user]);
 

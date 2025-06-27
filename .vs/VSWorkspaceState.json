@@ -2,8 +2,9 @@
   "ExpandedNodes": [
     "",
     "\\src",
+    "\\src\\components",
     "\\src\\pages"
   ],
-  "SelectedNode": "\\vite.config.ts",
+  "SelectedNode": "\\src\\components\\ScamIntelligenceEngine.tsx",
   "PreviewInSolutionExplorer": false
 }
