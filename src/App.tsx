@@ -33,8 +33,6 @@ import NotFound from "./pages/NotFound";
 import HowItWorks from "./pages/HowItWorks";
 import About from "./pages/About";
 import IPThreatScanner from './pages/IPThreatScanner';
-
-// Route protection
 import PrivateRoute from "./components/PrivateRoute";
 
 const queryClient = new QueryClient();
