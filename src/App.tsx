@@ -32,6 +32,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import NotFound from "./pages/NotFound";
 import HowItWorks from "./pages/HowItWorks";
 import About from "./pages/About";
+import IPThreatScanner from './pages/IPThreatScanner';
 
 // Route protection
 import PrivateRoute from "./components/PrivateRoute";
@@ -76,6 +77,7 @@ const App = () => {
                                     <Route path="/scam-report" element={<PrivateRoute><ScamReport /></PrivateRoute>} />
                                     <Route path="/threat-feed" element={<PrivateRoute><ThreatFeed /></PrivateRoute>} />
                                     <Route path="/billing" element={<PrivateRoute><Billing /></PrivateRoute>} />
+                                    <Route path="/ip-threat-scanner" element={<PrivateRoute><IPThreatScanner /></PrivateRoute>} />
 
                                     {/* Admin Routes */}
                                     <Route path="/admin" element={<AdminLogin />} />

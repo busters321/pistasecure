@@ -32,6 +32,9 @@ const Dashboard = () => {
         
         { icon: FileText, title: "Scam Report Generator", description: "Create and send scam reports easily", path: "/scam-report" },
         { icon: BarChart3, title: "Live Threat Feed", description: "See real-time scam trends and alerts", path: "/threat-feed" },
+
+        { icon: Globe, title: "IP Threat Scanner", description: "Check abuse reports and threat info for any IP address", path: "/ip-threat-scanner" }
+
     ];
 
     return (

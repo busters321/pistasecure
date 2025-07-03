@@ -1,10 +1,7 @@
 {
   "ExpandedNodes": [
-    "",
-    "\\src",
-    "\\src\\components",
-    "\\src\\pages"
+    "\\api",
+    "\\api\\ip-threat"
   ],
-  "SelectedNode": "\\src\\components\\ScamIntelligenceEngine.tsx",
   "PreviewInSolutionExplorer": false
 }
