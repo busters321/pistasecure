@@ -10,7 +10,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 
 import { AuthProvider } from "./contexts/AuthContext";
 import { AdminAuthProvider } from "./contexts/AdminAuthContext";
-import { FeatureAccessProvider } from "./contexts/FeatureAccessContext";
 
 // Pages
 import Index from "./pages/Index";
@@ -54,37 +53,35 @@ const App = () => {
                 <BrowserRouter>
                     <AuthProvider>
                         <AdminAuthProvider>
-                            <FeatureAccessProvider>
-                                <Routes>
-                                    {/* Public Routes */}
-                                    <Route path="/" element={<Index />} />
-                                    <Route path="/signup" element={<SignUp />} />
-                                    <Route path="/login" element={<Login />} />
-                                    <Route path="/about" element={<About />} />
-                                    <Route path="/how-it-works" element={<HowItWorks />} />
+                            <Routes>
+                                {/* Public Routes */}
+                                <Route path="/" element={<Index />} />
+                                <Route path="/signup" element={<SignUp />} />
+                                <Route path="/login" element={<Login />} />
+                                <Route path="/about" element={<About />} />
+                                <Route path="/how-it-works" element={<HowItWorks />} />
 
-                                    {/* Protected Routes */}
-                                    <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-                                    <Route path="/scam-intelligence" element={<PrivateRoute><ScamIntelligence /></PrivateRoute>} />
-                                    <Route path="/link-inspection" element={<PrivateRoute><LinkInspection /></PrivateRoute>} />
-                                    <Route path="/email-scanner" element={<PrivateRoute><EmailScanner /></PrivateRoute>} />
-                                    <Route path="/cyber-copilot" element={<PrivateRoute><CyberCopilot /></PrivateRoute>} />
-                                    <Route path="/safe-view" element={<PrivateRoute><SafeViewBrowser /></PrivateRoute>} />
-                                    <Route path="/social-protection" element={<PrivateRoute><SocialMediaProtection /></PrivateRoute>} />
-                                    <Route path="/password-checker" element={<PrivateRoute><PasswordChecker /></PrivateRoute>} />
-                                    <Route path="/scam-report" element={<PrivateRoute><ScamReport /></PrivateRoute>} />
-                                    <Route path="/threat-feed" element={<PrivateRoute><ThreatFeed /></PrivateRoute>} />
-                                    <Route path="/billing" element={<PrivateRoute><Billing /></PrivateRoute>} />
-                                    <Route path="/ip-threat-scanner" element={<PrivateRoute><IPThreatScanner /></PrivateRoute>} />
+                                {/* Protected Routes */}
+                                <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
+                                <Route path="/scam-intelligence" element={<PrivateRoute><ScamIntelligence /></PrivateRoute>} />
+                                <Route path="/link-inspection" element={<PrivateRoute><LinkInspection /></PrivateRoute>} />
+                                <Route path="/email-scanner" element={<PrivateRoute><EmailScanner /></PrivateRoute>} />
+                                <Route path="/cyber-copilot" element={<PrivateRoute><CyberCopilot /></PrivateRoute>} />
+                                <Route path="/safe-view" element={<PrivateRoute><SafeViewBrowser /></PrivateRoute>} />
+                                <Route path="/social-protection" element={<PrivateRoute><SocialMediaProtection /></PrivateRoute>} />
+                                <Route path="/password-checker" element={<PrivateRoute><PasswordChecker /></PrivateRoute>} />
+                                <Route path="/scam-report" element={<PrivateRoute><ScamReport /></PrivateRoute>} />
+                                <Route path="/threat-feed" element={<PrivateRoute><ThreatFeed /></PrivateRoute>} />
+                                <Route path="/billing" element={<PrivateRoute><Billing /></PrivateRoute>} />
+                                <Route path="/ip-threat-scanner" element={<PrivateRoute><IPThreatScanner /></PrivateRoute>} />
 
-                                    {/* Admin Routes */}
-                                    <Route path="/admin" element={<AdminLogin />} />
-                                    <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                                {/* Admin Routes */}
+                                <Route path="/admin" element={<AdminLogin />} />
+                                <Route path="/admin/dashboard" element={<AdminDashboard />} />
 
-                                    {/* Not Found */}
-                                    <Route path="*" element={<NotFound />} />
-                                </Routes>
-                            </FeatureAccessProvider>
+                                {/* Not Found */}
+                                <Route path="*" element={<NotFound />} />
+                            </Routes>
                         </AdminAuthProvider>
                     </AuthProvider>
                 </BrowserRouter>

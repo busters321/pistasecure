@@ -3,8 +3,58 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { Lock, Shield } from "lucide-react";
+import { Header } from "@/components/Header"; // Import Header
+import { Footer } from "@/components/Footer"; // Import Footer
 
 const IpThreatScanner = () => {
+    const { isActive } = useAuth();
+    const navigate = useNavigate();
+
+    if (!isActive) {
+        return (
+            <div className="min-h-screen flex flex-col">
+                <Header /> {/* Added Header here */}
+                <main className="flex-grow container mx-auto px-4 py-8">
+                    <div className="max-w-3xl mx-auto">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="rounded-full p-2 bg-pistachio/10">
+                                <Shield className="h-6 w-6 text-pistachio" />
+                            </div>
+                            <div>
+                                <h1 className="text-3xl font-bold">IP Threat Scanner</h1>
+                                <p className="text-muted-foreground">
+                                    Advanced IP threat intelligence
+                                </p>
+                            </div>
+                        </div>
+
+                        <Card className="p-8 text-center">
+                            <div className="flex flex-col items-center space-y-4">
+                                <Lock className="h-10 w-10 text-pistachio" />
+                                <h2 className="text-2xl font-semibold">Pro Feature Locked</h2>
+                                <p className="text-muted-foreground max-w-md">
+                                    IP Threat Scanner is a premium security tool that identifies malicious IP addresses
+                                    and potential network threats. Activate your subscription to use it.
+                                </p>
+                                <Button
+                                    className="bg-pistachio text-black hover:bg-pistachio-dark"
+                                    onClick={() => navigate("/billing")}
+                                >
+                                    Go to Billing
+                                </Button>
+                            </div>
+                        </Card>
+                    </div>
+                </main>
+                <Footer /> {/* Added Footer here */}
+            </div>
+        );
+    }
+
+    // ... rest of the component code remains unchanged ...
     const [ip, setIp] = useState('');
     const [loading, setLoading] = useState(false);
     const [result, setResult] = useState<any>(null);

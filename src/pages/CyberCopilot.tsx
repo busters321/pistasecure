@@ -13,13 +13,15 @@ import {
     Shield,
     AlertTriangle,
     Copy,
-    Check
+    Check,
+    Lock
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import OpenAI from "openai";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { useAuth } from "@/contexts/AuthContext";
 
 type Message = {
     id: string;
@@ -41,6 +43,50 @@ const openai = new OpenAI({
 });
 
 export default function CyberCopilot() {
+    const { isActive } = useAuth();
+    const navigate = useNavigate();
+
+    if (!isActive) {
+        return (
+            <div className="min-h-screen flex flex-col">
+                <Header />
+                <main className="flex-grow container mx-auto px-4 py-8">
+                    <div className="max-w-3xl mx-auto">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="rounded-full p-2 bg-pistachio/10">
+                                <MessageCircle className="h-6 w-6 text-pistachio" />
+                            </div>
+                            <div>
+                                <h1 className="text-3xl font-bold">Cyber Copilot</h1>
+                                <p className="text-muted-foreground">
+                                    Your AI security assistant
+                                </p>
+                            </div>
+                        </div>
+
+                        <Card className="p-8 text-center">
+                            <div className="flex flex-col items-center space-y-4">
+                                <Lock className="h-10 w-10 text-pistachio" />
+                                <h2 className="text-2xl font-semibold">Pro Feature Locked</h2>
+                                <p className="text-muted-foreground max-w-md">
+                                    Cyber Copilot is a premium AI tool that helps you detect scams,
+                                    check links, and stay safe online. To use it, activate your subscription.
+                                </p>
+                                <Button
+                                    className="bg-pistachio text-black hover:bg-pistachio-dark"
+                                    onClick={() => navigate("/billing")}
+                                >
+                                    Go to Billing
+                                </Button>
+                            </div>
+                        </Card>
+                    </div>
+                </main>
+                <Footer />
+            </div>
+        );
+    }
+
     const [input, setInput] = useState("");
     const [messages, setMessages] = useState<Message[]>([
         {
@@ -54,7 +100,6 @@ export default function CyberCopilot() {
     const [isLoading, setIsLoading] = useState(false);
     const [copiedId, setCopiedId] = useState<string | null>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
-    const navigate = useNavigate();
 
     const suggestions: SuggestionTopic[] = [
         {
@@ -74,7 +119,6 @@ export default function CyberCopilot() {
         }
     ];
 
-    // Always scroll to bottom
     useEffect(() => {
         scrollRef.current?.scrollTo({
             top: scrollRef.current.scrollHeight,
@@ -225,7 +269,6 @@ export default function CyberCopilot() {
 
                     <Card className="h-[600px]">
                         <div className="flex flex-col h-full">
-                            {/* Scrollable messages */}
                             <div
                                 ref={scrollRef}
                                 className="flex-1 overflow-y-auto px-6 pt-6 space-y-4"
@@ -242,8 +285,8 @@ export default function CyberCopilot() {
                                         >
                                             <div
                                                 className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center ${m.sender === "user"
-                                                        ? "bg-pistachio/20"
-                                                        : "bg-secondary"
+                                                    ? "bg-pistachio/20"
+                                                    : "bg-secondary"
                                                     }`}
                                             >
                                                 {m.sender === "user" ? (
@@ -255,8 +298,8 @@ export default function CyberCopilot() {
                                             <div className="relative group">
                                                 <div
                                                     className={`p-3 rounded-lg ${m.sender === "user"
-                                                            ? "bg-pistachio text-black"
-                                                            : "bg-secondary"
+                                                        ? "bg-pistachio text-black"
+                                                        : "bg-secondary"
                                                         }`}
                                                 >
                                                     {renderMessage(m)}
@@ -304,7 +347,6 @@ export default function CyberCopilot() {
                                 )}
                             </div>
 
-                            {/* Footer: Suggestions & Input */}
                             <div className="px-6 pb-6">
                                 {messages.length === 1 && (
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-2 mb-4">

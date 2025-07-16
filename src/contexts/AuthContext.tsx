@@ -1,61 +1,98 @@
-// src/contexts/AuthContext.tsx
-import React, { createContext, useContext, useEffect, useState, ReactNode } from "react";
-import {
-    getAuth,
-    onAuthStateChanged,
-    setPersistence,
-    browserLocalPersistence,
-    signOut,
-    User,
-} from "firebase/auth";
+import React, { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
+import { onAuthStateChanged, setPersistence, browserLocalPersistence, signOut, User } from "firebase/auth";
+import { doc, onSnapshot } from "firebase/firestore";
+import { auth, db } from "../components/ui/firebase";
+
+interface Subscription {
+    plan?: string;
+    status: string; // 'active' or 'inactive'
+    stripeCustomerId?: string;
+    stripeSubscriptionId?: string;
+}
 
 interface AuthContextType {
     user: User | null;
+    subscription: Subscription | null;
     loading: boolean;
     logout: () => void;
+    isPro: boolean;
+    isActive: boolean;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | null>(null);
 
-export const useAuth = () => {
+export function useAuth() {
     const context = useContext(AuthContext);
     if (!context) throw new Error("useAuth must be used within AuthProvider");
     return context;
-};
+}
 
-export const AuthProvider = ({ children }: { children: ReactNode }) => {
-    const auth = getAuth();
+export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<User | null>(null);
+    const [subscription, setSubscription] = useState<Subscription | null>(null);
     const [loading, setLoading] = useState(true);
 
-    const logout = () => {
+    const logout = useCallback(() => {
         signOut(auth);
-    };
+    }, []);
 
     useEffect(() => {
         const initAuth = async () => {
             try {
                 await setPersistence(auth, browserLocalPersistence);
-                const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+                const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
                     setUser(currentUser);
-                    setLoading(false);
+
+                    if (!currentUser) {
+                        setSubscription(null);
+                        setLoading(false);
+                        return;
+                    }
+
+                    // Listen to user document changes
+                    const userRef = doc(db, 'users', currentUser.uid);
+                    const unsubscribeSubscription = onSnapshot(userRef, (docSnap) => {
+                        if (docSnap.exists()) {
+                            const data = docSnap.data();
+
+                            // Check if subscription object exists
+                            if (data.subscription) {
+                                setSubscription(data.subscription);
+                            } else if ('subscriptionStatus' in data) {
+                                // Map subscriptionStatus boolean to status string
+                                setSubscription({
+                                    status: data.subscriptionStatus ? "active" : "inactive",
+                                    // keep plan undefined if missing
+                                });
+                            } else {
+                                setSubscription(null);
+                            }
+                        } else {
+                            setSubscription(null);
+                        }
+                        setLoading(false);
+                    });
+
+                    return () => unsubscribeSubscription();
                 });
-                return unsubscribe;
+
+                return unsubscribeAuth;
             } catch (err) {
-                console.error("Failed to set auth persistence:", err);
+                console.error("Auth initialization failed:", err);
                 setLoading(false);
             }
         };
 
-        const unsubscribePromise = initAuth();
+        const unsubscribeAuth = initAuth();
 
         return () => {
-            unsubscribePromise.then((unsubscribe) => {
-                if (typeof unsubscribe === "function") unsubscribe();
-            });
+            if (unsubscribeAuth && typeof unsubscribeAuth === "function") {
+                unsubscribeAuth();
+            }
         };
-    }, [auth]);
+    }, []);
 
+    // Inactivity timer
     useEffect(() => {
         if (!user) return;
 
@@ -68,34 +105,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         const resetTimer = () => {
             clearTimeout(timeoutId);
-            timeoutId = setTimeout(logoutAfterInactivity, 30 * 60 * 1000); // 30 mins
+            timeoutId = setTimeout(logoutAfterInactivity, 30 * 60 * 1000); // 30 minutes
         };
 
-        const activityEvents = [
-            "mousemove",
-            "mousedown",
-            "keydown",
-            "scroll",
-            "touchstart",
-        ];
-
-        activityEvents.forEach((event) =>
-            window.addEventListener(event, resetTimer)
-        );
+        const activityEvents = ["mousemove", "mousedown", "keydown", "scroll", "touchstart"];
+        activityEvents.forEach(event => window.addEventListener(event, resetTimer));
 
         resetTimer();
 
         return () => {
             clearTimeout(timeoutId);
-            activityEvents.forEach((event) =>
-                window.removeEventListener(event, resetTimer)
-            );
+            activityEvents.forEach(event => window.removeEventListener(event, resetTimer));
         };
-    }, [user]);
+    }, [user, logout]);
+
+    const isActive = subscription?.status === "active";
+    const isPro = subscription?.plan === "pro" && isActive;
+
+    const value = {
+        user,
+        subscription,
+        loading,
+        logout,
+        isPro,
+        isActive
+    };
 
     return (
-        <AuthContext.Provider value={{ user, loading, logout }}>
+        <AuthContext.Provider value={value}>
             {children}
         </AuthContext.Provider>
     );
-};
+}

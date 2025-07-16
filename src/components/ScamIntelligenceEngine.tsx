@@ -4,6 +4,12 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { Lock, MessageCircle } from "lucide-react"; // Add other icons if needed
+import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
+
 
 type RiskLevel = "safe" | "suspicious" | "dangerous" | null;
 
@@ -449,186 +455,226 @@ const scamIndicators = [
     
 
 
-
-
-
 export function ScamIntelligenceEngine() {
-    const [inputValue, setInputValue] = useState("");
-    const [isLoading, setIsLoading] = useState(false);
-    const [result, setResult] = useState<AnalysisResult | null>(null);
+    const { isActive } = useAuth();
+    const navigate = useNavigate();
 
-    const analyzeText = (text: string): AnalysisResult => {
-        let score = 0;
-        const foundReasons: string[] = [];
-        const lowerText = text.toLowerCase();
+    if (!isActive) {
+        return (
+            <div className="min-h-screen flex flex-col">
+                <main className="flex-grow container mx-auto px-4 py-8">
+                    <div className="max-w-3xl mx-auto">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="rounded-full p-2 bg-pistachio/10">
+                                <Shield className="h-6 w-6 text-pistachio" />
+                            </div>
+                            <div>
+                                <h1 className="text-3xl font-bold">Scam Intelligence</h1>
+                                <p className="text-muted-foreground">
+                                    AI-powered scam detection
+                                </p>
+                            </div>
+                        </div>
 
-        scamIndicators.forEach((item) => {
-            if (lowerText.includes(item.keyword.toLowerCase())) {
-                score += item.score;
-                foundReasons.push(`Found phrase: "${item.keyword}"`);
-            }
-        });
-
-        // Normalize score to 0-100
-        const normalizedScore = Math.min(100, Math.floor(score / 5));
-
-        let riskLevel: RiskLevel = "safe";
-        let advice = "No scam indicators found. Remain cautious.";
-
-        if (normalizedScore >= 70) {
-            riskLevel = "dangerous";
-            advice = "Do not engage. Report and delete the message.";
-        } else if (normalizedScore >= 30) {
-            riskLevel = "suspicious";
-            advice = "Be cautious. Double check sender identity.";
-        }
-
-        return { riskLevel, score: normalizedScore, reasons: foundReasons, advice };
-    };
-
-    const handleAnalyze = () => {
-        if (!inputValue.trim()) {
-            toast.error("Please enter text to analyze.");
-            return;
-        }
-
-        setIsLoading(true);
-
-        // Simulate analysis (no timeout needed)
-        setTimeout(() => {
-            const analysis = analyzeText(inputValue);
-            setResult(analysis);
-
-            if (analysis.riskLevel === "dangerous") toast.error("High risk content detected!");
-            else if (analysis.riskLevel === "suspicious") toast.warning("Suspicious content detected");
-            else toast.success("Content appears to be safe");
-
-            setIsLoading(false);
-        }, 300);
-    };
-
-    const reset = () => {
-        setInputValue("");
-        setResult(null);
-    };
-
-    const getColor = (risk: RiskLevel) => {
-        switch (risk) {
-            case "safe":
-                return "border-green-600 bg-green-50 text-green-700";
-            case "suspicious":
-                return "border-yellow-500 bg-yellow-50 text-yellow-800";
-            case "dangerous":
-                return "border-red-600 bg-red-50 text-red-700";
-            default:
-                return "";
-        }
-    };
-
-    const getIcon = (risk: RiskLevel) => {
-        switch (risk) {
-            case "safe":
-                return <Check className="h-5 w-5 text-green-600" />;
-            case "suspicious":
-                return <AlertTriangle className="h-5 w-5 text-yellow-600" />;
-            case "dangerous":
-                return <X className="h-5 w-5 text-red-600" />;
-            default:
-                return null;
-        }
-    };
-
-    return (
-        <section id="scam-intelligence" className="py-16">
-            <div className="container mx-auto px-4">
-                <div className="text-center mb-10">
-                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-full security-gradient mb-4">
-                        <Shield className="h-6 w-6 text-white" />
+                        <Card className="p-8 text-center">
+                            <div className="flex flex-col items-center space-y-4">
+                                <Lock className="h-10 w-10 text-pistachio" />
+                                <h2 className="text-2xl font-semibold">Pro Feature Locked</h2>
+                                <p className="text-muted-foreground max-w-md">
+                                    Scam Intelligence is a premium security tool that detects sophisticated
+                                    scams and phishing attempts. Activate your subscription to use it.
+                                </p>
+                                <Button
+                                    className="bg-pistachio text-black hover:bg-pistachio-dark"
+                                    onClick={() => navigate("/billing")}
+                                >
+                                    Go to Billing
+                                </Button>
+                            </div>
+                        </Card>
                     </div>
-                    <h2 className="text-3xl font-bold">AI Scam Intelligence Engine</h2>
-                    <p className="mt-4 text-muted-foreground max-w-2xl mx-auto">
-                        Analyze messages, links, or images to instantly detect and protect against digital scams.
-                    </p>
-                </div>
+                </main>
+                <Footer />
+            </div>
+        );
+    }
 
-                <div className="max-w-3xl mx-auto">
-                    <Card className="border-border/50 shadow-lg">
-                        <CardHeader>
-                            <CardTitle>Scan for Scams</CardTitle>
-                            <CardDescription>Enter a message and check its safety</CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                            {result ? (
-                                <div className="space-y-6">
-                                    <div className={`p-4 rounded-lg border ${getColor(result.riskLevel)}`}>
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-2 rounded-full bg-background">{getIcon(result.riskLevel)}</div>
-                                            <div>
-                                                <h3 className="font-medium text-lg capitalize">{result.riskLevel} ({result.score}%)</h3>
-                                                <p className="text-sm text-muted-foreground">
-                                                    {result.riskLevel === "safe"
-                                                        ? "This content appears safe."
-                                                        : "This message contains risky elements."}
-                                                </p>
+        const [inputValue, setInputValue] = useState("");
+        const [isLoading, setIsLoading] = useState(false);
+        const [result, setResult] = useState<AnalysisResult | null>(null);
+
+        const analyzeText = (text: string): AnalysisResult => {
+            let score = 0;
+            const foundReasons: string[] = [];
+            const lowerText = text.toLowerCase();
+
+            scamIndicators.forEach((item) => {
+                if (lowerText.includes(item.keyword.toLowerCase())) {
+                    score += item.score;
+                    foundReasons.push(`Found phrase: "${item.keyword}"`);
+                }
+            });
+
+            // Normalize score to 0-100
+            const normalizedScore = Math.min(100, Math.floor(score / 5));
+
+            let riskLevel: RiskLevel = "safe";
+            let advice = "No scam indicators found. Remain cautious.";
+
+            if (normalizedScore >= 70) {
+                riskLevel = "dangerous";
+                advice = "Do not engage. Report and delete the message.";
+            } else if (normalizedScore >= 30) {
+                riskLevel = "suspicious";
+                advice = "Be cautious. Double check sender identity.";
+            }
+
+            return { riskLevel, score: normalizedScore, reasons: foundReasons, advice };
+        };
+
+        const handleAnalyze = () => {
+            if (!inputValue.trim()) {
+                toast.error("Please enter text to analyze.");
+                return;
+            }
+
+            setIsLoading(true);
+
+            // Simulate analysis (no timeout needed)
+            setTimeout(() => {
+                const analysis = analyzeText(inputValue);
+                setResult(analysis);
+
+                if (analysis.riskLevel === "dangerous") toast.error("High risk content detected!");
+                else if (analysis.riskLevel === "suspicious") toast.warning("Suspicious content detected");
+                else toast.success("Content appears to be safe");
+
+                setIsLoading(false);
+            }, 300);
+        };
+
+        const reset = () => {
+            setInputValue("");
+            setResult(null);
+        };
+
+        const getColor = (risk: RiskLevel) => {
+            switch (risk) {
+                case "safe":
+                    return "border-green-600 bg-green-50 text-green-700";
+                case "suspicious":
+                    return "border-yellow-500 bg-yellow-50 text-yellow-800";
+                case "dangerous":
+                    return "border-red-600 bg-red-50 text-red-700";
+                default:
+                    return "";
+            }
+        };
+
+        const getIcon = (risk: RiskLevel) => {
+            switch (risk) {
+                case "safe":
+                    return <Check className="h-5 w-5 text-green-600" />;
+                case "suspicious":
+                    return <AlertTriangle className="h-5 w-5 text-yellow-600" />;
+                case "dangerous":
+                    return <X className="h-5 w-5 text-red-600" />;
+                default:
+                    return null;
+            }
+        };
+
+        return (
+            <section id="scam-intelligence" className="py-16">
+                <div className="container mx-auto px-4">
+                    <div className="text-center mb-10">
+                        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full security-gradient mb-4">
+                            <Shield className="h-6 w-6 text-white" />
+                        </div>
+                        <h2 className="text-3xl font-bold">AI Scam Intelligence Engine</h2>
+                        <p className="mt-4 text-muted-foreground max-w-2xl mx-auto">
+                            Analyze messages, links, or images to instantly detect and protect against digital scams.
+                        </p>
+                    </div>
+
+                    <div className="max-w-3xl mx-auto">
+                        <Card className="border-border/50 shadow-lg">
+                            <CardHeader>
+                                <CardTitle>Scan for Scams</CardTitle>
+                                <CardDescription>Enter a message and check its safety</CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                {result ? (
+                                    <div className="space-y-6">
+                                        <div className={`p-4 rounded-lg border ${getColor(result.riskLevel)}`}>
+                                            <div className="flex items-center gap-3">
+                                                <div className="p-2 rounded-full bg-background">{getIcon(result.riskLevel)}</div>
+                                                <div>
+                                                    <h3 className="font-medium text-lg capitalize">{result.riskLevel} ({result.score}%)</h3>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        {result.riskLevel === "safe"
+                                                            ? "This content appears safe."
+                                                            : "This message contains risky elements."}
+                                                    </p>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
 
-                                    <div>
-                                        <h4 className="font-medium mb-2">Reasons detected</h4>
-                                        <ul className="space-y-2">
-                                            {result.reasons.map((reason, i) => (
-                                                <li key={i} className="flex items-start gap-2">
-                                                    <span className="mt-1 text-xs bg-secondary rounded-full p-0.5 text-muted-foreground">{i + 1}</span>
-                                                    <span>{reason}</span>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
+                                        <div>
+                                            <h4 className="font-medium mb-2">Reasons detected</h4>
+                                            <ul className="space-y-2">
+                                                {result.reasons.map((reason, i) => (
+                                                    <li key={i} className="flex items-start gap-2">
+                                                        <span className="mt-1 text-xs bg-secondary rounded-full p-0.5 text-muted-foreground">{i + 1}</span>
+                                                        <span>{reason}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
 
-                                    <div>
-                                        <h4 className="font-medium mb-2">Advice</h4>
-                                        <p>{result.advice}</p>
-                                    </div>
+                                        <div>
+                                            <h4 className="font-medium mb-2">Advice</h4>
+                                            <p>{result.advice}</p>
+                                        </div>
 
-                                    <div className="flex gap-3">
-                                        <Button onClick={reset} variant="outline" className="flex-1">Scan something else</Button>
+                                        <div className="flex gap-3">
+                                            <Button onClick={reset} variant="outline" className="flex-1">Scan something else</Button>
+                                            <Button
+                                                className="flex-1 bg-pistachio hover:bg-pistachio-dark text-black"
+                                                onClick={() => toast.success("Report submitted successfully!")}
+                                            >
+                                                Report to authorities
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-4">
+                                        <Textarea
+                                            placeholder="Paste the suspicious message here..."
+                                            className="min-h-[150px]"
+                                            value={inputValue}
+                                            onChange={(e) => setInputValue(e.target.value)}
+                                        />
                                         <Button
-                                            className="flex-1 bg-pistachio hover:bg-pistachio-dark text-black"
-                                            onClick={() => toast.success("Report submitted successfully!")}
+                                            onClick={handleAnalyze}
+                                            disabled={isLoading || !inputValue.trim()}
+                                            className="w-full bg-pistachio hover:bg-pistachio-dark text-black"
                                         >
-                                            Report to authorities
+                                            {isLoading ? (
+                                                <>
+                                                    <div className="h-4 w-4 border-2 border-black border-t-transparent rounded-full animate-spin mr-2"></div>
+                                                    Analyzing...
+                                                </>
+                                            ) : (
+                                                "Analyze for Threats"
+                                            )}
                                         </Button>
                                     </div>
-                                </div>
-                            ) : (
-                                <div className="space-y-4">
-                                    <Textarea
-                                        placeholder="Paste the suspicious message here..."
-                                        className="min-h-[150px]"
-                                        value={inputValue}
-                                        onChange={(e) => setInputValue(e.target.value)}
-                                    />
-                                    <Button
-                                        onClick={handleAnalyze}
-                                        disabled={isLoading || !inputValue.trim()}
-                                        className="w-full bg-pistachio hover:bg-pistachio-dark text-black"
-                                    >
-                                        {isLoading ? (
-                                            <>
-                                                <div className="h-4 w-4 border-2 border-black border-t-transparent rounded-full animate-spin mr-2"></div>
-                                                Analyzing...
-                                            </>
-                                        ) : (
-                                            "Analyze for Threats"
-                                        )}
-                                    </Button>
-                                </div>
-                            )}
-                        </CardContent>
-                    </Card>
+                                )}
+                            </CardContent>
+                        </Card>
+                    </div>
                 </div>
-            </div>
-        </section>
-    );
-}
+            </section>
+        );
+    }
