@@ -72,7 +72,7 @@ const Billing = () => {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
-                        priceId: "price_1RlaBkK1Xz4Wkq9iuHdkdRr4",
+                        priceId: "price_1RhS16K1Xz4Wkq9iIeUuveYW",
                         userId: user.uid
                     }),
                 }
