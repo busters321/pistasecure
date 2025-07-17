@@ -1,4 +1,6 @@
-﻿import { useState } from "react";
+﻿"use client";
+
+import { useState } from "react";
 import { Shield, AlertTriangle, X, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";

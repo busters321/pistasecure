@@ -1,19 +1,32 @@
+﻿import { useState, useEffect } from 'react';
 import { Header } from "@/components/Header";
 import { Hero } from "@/components/Hero";
 import { Features } from "@/components/Features";
-import { ScamIntelligenceEngine } from "@/components/ScamIntelligenceEngine";
 import { Footer } from "@/components/Footer";
 
 export default function Home() {
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
     return (
         <div className="min-h-screen flex flex-col">
-            <Header />
-            <main className="flex-grow">
-                <Hero />
-                <Features />
-                <ScamIntelligenceEngine />
-            </main>
-            <Footer />
+            {isMounted ? (
+                <>
+                    <Header />
+                    <main className="flex-grow">
+                        <Hero />
+                        <Features />
+                    </main>
+                    <Footer />
+                </>
+            ) : (
+                <div className="flex-grow flex items-center justify-center">
+                    Loading PistaSecure...
+                </div>
+            )}
         </div>
     );
 }
